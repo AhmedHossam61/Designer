@@ -61,6 +61,9 @@ class ImageGenerationAgent:
         
         self.pipe.to(self.device)
         
+        # self.pipe.enable_attention_slicing()
+        # self.pipe.enable_vae_tiling()
+
         # Verify model is on GPU
         if self.device == "cuda":
             print(f"✅ Model loaded on GPU")
