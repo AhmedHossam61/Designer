@@ -262,7 +262,7 @@ import time
 MODEL_NAME = "Qwen/Qwen2.5-3B-Instruct"
 INPUT_JSON_PATH = "slides.json"
 OUTPUT_JSON_PATH = "powerpoint_layout.json"
-MAX_NEW_TOKENS = 4096
+MAX_NEW_TOKENS = 4096*2
 
 print("=" * 60)
 print("STARTING MODEL INFERENCE")
