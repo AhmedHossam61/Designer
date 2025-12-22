@@ -1,39 +1,42 @@
 import json
-import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, TextStreamer
 import time
+from llama_cpp import Llama
 
 # ----------------------------
 # CONFIG
 # ----------------------------
-MODEL_NAME = "Qwen/Qwen2.5-3B-Instruct"
-INPUT_JSON_PATH = "slides15.json"
+MODEL_PATH = "/teamspace/studios/this_studio/Designer/models/qwen2.5-7b-instruct-q4_k_m-00002-of-00002.gguf"  # Update this path
+INPUT_JSON_PATH = "Test1.json"
 OUTPUT_JSON_PATH = "powerpoint_layout.json"
-MAX_NEW_TOKENS = 4096*2
+MAX_TOKENS = 4096*2*2
+
+# GPU layers - adjust based on your VRAM (0 = CPU only, -1 = all layers on GPU)
+N_GPU_LAYERS = -1  # Use -1 for full GPU, 0 for CPU only, or specific number like 20
 
 print("=" * 60)
-print("STARTING MODEL INFERENCE")
+print("STARTING LLAMA.CPP INFERENCE")
 print("=" * 60)
 
 # ----------------------------
-# LOAD MODEL & TOKENIZER
+# LOAD MODEL
 # ----------------------------
-print("\n[1/5] Loading tokenizer...")
-tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-print("✓ Tokenizer loaded")
+print("\n[1/4] Loading model...")
+print(f"Model path: {MODEL_PATH}")
+print(f"GPU layers: {N_GPU_LAYERS}")
 
-print("\n[2/5] Loading model (this may take a while)...")
-model = AutoModelForCausalLM.from_pretrained(
-    MODEL_NAME,
-    torch_dtype=torch.float16,
-    device_map="auto"
+llm = Llama(
+    model_path=MODEL_PATH,
+    n_ctx=4096,          # Context window
+    n_gpu_layers=N_GPU_LAYERS,
+    n_threads=8,         # CPU threads
+    verbose=False
 )
-print("✓ Model loaded")
+print("✓ Model loaded successfully")
 
 # ----------------------------
 # LOAD INPUT JSON
 # ----------------------------
-print("\n[3/5] Loading input JSON...")
+print("\n[2/4] Loading input JSON...")
 with open(INPUT_JSON_PATH, "r", encoding="utf-8") as f:
     input_data = json.load(f)
 print(f"✓ Loaded {len(input_data.get('slides', []))} slides")
@@ -136,70 +139,60 @@ IMPORTANT:
 - Leave margins: 0.5 inches from edges
 """
 
-messages = [
-    {"role": "system", "content": system_message},
-    {"role": "user", "content": user_message}
-]
+# ----------------------------
+# BUILD PROMPT
+# ----------------------------
+print("\n[3/4] Preparing prompt...")
+
+# Qwen2.5 chat template format
+prompt = f"""<|im_start|>system
+{system_message}<|im_end|>
+<|im_start|>user
+{user_message}<|im_end|>
+<|im_start|>assistant
+"""
+
+print(f"✓ Prompt prepared")
+print(f"  Max tokens to generate: {MAX_TOKENS}")
 
 # ----------------------------
-# APPLY CHAT TEMPLATE
+# GENERATE WITH STREAMING
 # ----------------------------
-print("\n[4/5] Preparing prompt...")
-prompt = tokenizer.apply_chat_template(
-    messages,
-    tokenize=False,
-    add_generation_prompt=True
-)
-
-inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
-input_token_count = inputs["input_ids"].shape[1]
-
-print(f"✓ Prompt prepared: {input_token_count} tokens")
-print(f"  Max new tokens to generate: {MAX_NEW_TOKENS}")
-print(f"  Total max tokens: {input_token_count + MAX_NEW_TOKENS}")
-
-# ----------------------------
-# GENERATE WITH PROGRESS
-# ----------------------------
-print("\n[5/5] Generating response...")
+print("\n[4/4] Generating response...")
 print("=" * 60)
 print("LIVE OUTPUT (streaming):")
 print("-" * 60)
 
-# Create a custom streamer for real-time output
-streamer = TextStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
-
 start_time = time.time()
+full_response = ""
+token_count = 0
 
-with torch.no_grad():
-    output = model.generate(
-        **inputs,
-        max_new_tokens=MAX_NEW_TOKENS,
-        do_sample=False,
-        streamer=streamer,
-        pad_token_id=tokenizer.pad_token_id or tokenizer.eos_token_id
-    )
+# Stream generation with progress
+for output in llm(
+    prompt,
+    max_tokens=MAX_TOKENS,
+    temperature=0.1,
+    top_p=0.9,
+    echo=False,
+    stream=True,
+    stop=["<|im_end|>", "<|endoftext|>"]
+):
+    chunk = output['choices'][0]['text']
+    print(chunk, end='', flush=True)
+    full_response += chunk
+    token_count += 1
 
 generation_time = time.time() - start_time
 
-print("-" * 60)
+print("\n" + "-" * 60)
 print(f"✓ Generation complete in {generation_time:.2f}s")
 
 # ----------------------------
-# DECODE FULL OUTPUT
+# STATISTICS
 # ----------------------------
-input_len = inputs["input_ids"].shape[1]
-generated_tokens = output[0][input_len:]
-tokens_generated = len(generated_tokens)
-
-response_text = tokenizer.decode(
-    generated_tokens,
-    skip_special_tokens=True
-)
-
 print(f"\n📊 Generation Stats:")
-print(f"   - Tokens generated: {tokens_generated}")
-print(f"   - Tokens/second: {tokens_generated/generation_time:.2f}")
+print(f"   - Tokens generated: {token_count}")
+print(f"   - Tokens/second: {token_count/generation_time:.2f}")
 print(f"   - Total time: {generation_time:.2f}s")
 
 # ----------------------------
@@ -220,7 +213,7 @@ def extract_json(text):
     return json.loads(text[start:end])
 
 try:
-    layout_json = extract_json(response_text)
+    layout_json = extract_json(full_response)
     print("✓ Successfully parsed JSON")
     
     # Validate structure
@@ -255,10 +248,10 @@ try:
 except Exception as e:
     print(f"✗ Error parsing JSON: {e}")
     print("\nRAW OUTPUT:")
-    print(response_text)
+    print(full_response)
     
-    # Save raw output for debugging (as txt)
+    # Save raw output for debugging
     debug_file = "raw_output_debug.txt"
     with open(debug_file, "w", encoding="utf-8") as f:
-        f.write(response_text)
+        f.write(full_response)
     print(f"\n✓ Raw output saved to {debug_file} for debugging")

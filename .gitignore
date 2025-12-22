@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 model_cache/
 logs/
+models/
 # C extensions
 *.so
 generated_images/

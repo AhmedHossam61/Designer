@@ -1,0 +1,99 @@
+{
+  "presentation_metadata": {
+    "title": "The Global Energy Transition 2030",
+    "theme": "Modern Industrial / Eco-Minimalist",
+    "total_slides": 15
+  },
+  "slides": [
+    {
+      "slide_number": 1,
+      "layout_type": "title_hero",
+      "content": { "title": "The Global Energy Transition", "subtitle": "A Roadmap to Net Zero by 2050" },
+      "visuals": { "requires_image": true, "image_prompt": "Cinematic wide shot of a futuristic city integrated with greenery and wind turbines, sunrise lighting, photorealistic." }
+    },
+    {
+      "slide_number": 2,
+      "layout_type": "agenda_list",
+      "content": { "header": "Presentation Overview", "items": ["Current Energy Landscape", "Renewable Breakthroughs", "The Role of AI", "Economic Impact", "Implementation Roadmap"] },
+      "visuals": { "requires_image": false, "image_prompt": null }
+    },
+    {
+      "slide_number": 3,
+      "layout_type": "section_header",
+      "content": { "title": "Part 1: The Current Landscape", "description": "Analyzing our dependence on legacy infrastructure." },
+      "visuals": { "requires_image": true, "image_prompt": "Aerial view of an old coal power plant with heavy smoke, high contrast, moody atmosphere." }
+    },
+    {
+      "slide_number": 4,
+      "layout_type": "two_column_comparison",
+      "content": { "left_title": "Fossil Fuels", "left_text": "High emissions, finite resources.", "right_title": "Renewables", "right_text": "Zero emissions, infinite potential." },
+      "visuals": { "requires_image": false, "image_prompt": null }
+    },
+    {
+      "slide_number": 5,
+      "layout_type": "data_chart_focus",
+      "content": { "header": "Global Temperature Rise", "data_point": "1.2°C increase since pre-industrial levels", "insight": "Urgent action is required to stay below 1.5°C." },
+      "visuals": { "requires_image": true, "image_prompt": "Abstract 3D digital visualization of global warming heat map on a globe, neon red and orange gradients." }
+    },
+    {
+      "slide_number": 6,
+      "layout_type": "feature_grid",
+      "content": { "header": "Key Renewable Sources", "features": ["Solar PV", "Onshore/Offshore Wind", "Green Hydrogen", "Geothermal"] },
+      "visuals": { "requires_image": true, "image_prompt": "Icon set style: minimal line art representing sun, wind turbine, water droplet, and earth core." }
+    },
+    {
+      "slide_number": 7,
+      "layout_type": "big_image_caption",
+      "content": { "caption": "Solar energy is now the cheapest form of electricity in history." },
+      "visuals": { "requires_image": true, "image_prompt": "Close up of high-tech solar panels reflecting a clear blue sky, macro photography, sharp focus." }
+    },
+    {
+      "slide_number": 8,
+      "layout_type": "text_heavy_bullets",
+      "content": { "header": "The Energy Storage Challenge", "bullets": ["Lithium-ion constraints", "Solid-state battery potential", "Pumped hydro storage", "Gravity-based systems"] },
+      "visuals": { "requires_image": false, "image_prompt": null }
+    },
+    {
+      "slide_number": 9,
+      "layout_type": "section_header",
+      "content": { "title": "Part 2: Technology & AI", "description": "Smart grids and predictive maintenance." },
+      "visuals": { "requires_image": true, "image_prompt": "Digital circuit board pattern morphing into a green leaf, symbolize green tech, glowing lines." }
+    },
+    {
+      "slide_number": 10,
+      "layout_type": "image_right_text_left",
+      "content": { "header": "AI-Driven Smart Grids", "body": "Using machine learning to predict demand surges and optimize distribution." },
+      "visuals": { "requires_image": true, "image_prompt": "Futuristic city control room with holographic maps of power lines, blue aesthetic." }
+    },
+    {
+      "slide_number": 11,
+      "layout_type": "quote_slide",
+      "content": { "quote": "The stone age did not end because we ran out of stones; the oil age will not end because we run out of oil.", "attribution": "Sheikh Yamani" },
+      "visuals": { "requires_image": false, "image_prompt": null }
+    },
+    {
+      "slide_number": 12,
+      "layout_type": "three_column_stats",
+      "content": { "col_1": "70% Carbon Reduction", "col_2": "$12T Investment needed", "col_3": "24M New Jobs created" },
+      "visuals": { "requires_image": false, "image_prompt": null }
+    },
+    {
+      "slide_number": 13,
+      "layout_type": "process_steps",
+      "content": { "step_1": "Policy Reform", "step_2": "Infrastructure Build", "step_3": "Public Adoption" },
+      "visuals": { "requires_image": true, "image_prompt": "Isometric 3D timeline showing progress from a factory to a green forest park." }
+    },
+    {
+      "slide_number": 14,
+      "layout_type": "call_to_action",
+      "content": { "header": "What Can You Do?", "body": "Investment, Advocacy, and Adoption." },
+      "visuals": { "requires_image": true, "image_prompt": "Hands holding a small glowing plant, soft bokeh background, hopeful lighting." }
+    },
+    {
+      "slide_number": 15,
+      "layout_type": "contact_closing",
+      "content": { "title": "Thank You", "email": "contact@energytransition.org", "website": "www.futureenergy.com" },
+      "visuals": { "requires_image": false, "image_prompt": null }
+    }
+  ]
+}
