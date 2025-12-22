@@ -1,0 +1,30 @@
+{
+  "slides": [
+    {
+      "slide type": "Title slide",
+      "slide title": "Agentic AI: From Chatbots to Digital Coworkers",
+      "slide content": "An introduction to the next wave of artificial intelligence: autonomous systems capable of reasoning, planning, and executing complex tasks without constant human oversight."
+    },
+    {
+      "slide type": "Bullet point slide",
+      "slide title": "Key Characteristics of Agentic AI",
+      "slide content": "• **Autonomy:** Operates independently to achieve goals without needing continuous human prompts.\n• **Reasoning & Planning:** Breaks down high-level objectives into actionable steps (Chain of Thought).\n• **Tool Use:** Capable of browsing the web, using APIs, and executing software commands to finish tasks.\n• **Memory & Persistence:** Maintains context over long periods and remembers past interactions to improve future performance.\n• **Reflection:** Self-corrects by evaluating its own outputs and adjusting strategies when errors occur."
+    },
+    {
+      "slide type": "Comparison slide",
+      "slide title": "Agentic AI vs. Generative AI",
+      "slide content": "**Generative AI (The 'Thinker'):**\n• **Mode:** Reactive; waits for user inputs.\n• **Output:** Generates text, images, or code.\n• **Interaction:** Single-turn or chat-based.\n• **Limitation:** Cannot easily interact with the outside world.\n\n**Agentic AI (The 'Doer'):**\n• **Mode:** Proactive; pursues broader goals.\n• **Output:** Executes workflows and performs actions.\n• **Interaction:** Multi-step autonomous loops.\n• **Capability:** Uses external tools (email, CRMs, GitHub) to finalize tasks."
+    },
+    {
+      "slide type": "Bullet point slide",
+      "slide title": "Real-World Applications & Use Cases",
+      "slide content": "• **Software Engineering:** Autonomous coding agents (e.g., Devin) that write, debug, and deploy codebases.\n• **Customer Support:** Agents that don't just answer questions but process refunds, update records, and schedule appointments.\n• **Scientific Research:** Systems that search the web, read papers, synthesize data, and generate reports automatically.\n• **Supply Chain Management:** Agents that monitor inventory levels and autonomously place orders or negotiate with suppliers."
+    },
+    {
+      "slide type": "Paragraph slide",
+      "slide title": "The Future of Agentic AI",
+      "slide content": "Agentic AI represents a paradigm shift from using AI as a tool to collaborating with AI as a partner. As these systems evolve, we will move toward 'Multi-Agent Orchestration,' where specialized agents (coders, designers, researchers) collaborate to solve complex enterprise problems. While this promises massive productivity gains, it necessitates robust governance frameworks to manage safety, security, and the ethical implications of autonomous decision-making."
+    }
+  ],
+  "summary": "This presentation explores 'Agentic AI,' a sophisticated form of artificial intelligence distinguished by its ability to act autonomously, plan, and use tools to achieve goals. Unlike standard Generative AI, which is reactive and focuses on content creation, Agentic AI is proactive and focuses on task execution. Key highlights include its core characteristics (autonomy, reasoning, tool use), a comparison with traditional GenAI, and diverse applications ranging from autonomous software engineering to supply chain automation. The presentation concludes by projecting a future where multi-agent systems act as digital coworkers, necessitating new standards for AI governance and safety."
+}
