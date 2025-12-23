@@ -1,39 +1,51 @@
 import json
-import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, TextStreamer
 import time
+from llama_cpp import Llama
 
 # ----------------------------
 # CONFIG
 # ----------------------------
-MODEL_NAME = "Qwen/Qwen2.5-3B-Instruct"
+MODEL_PATH = "/teamspace/studios/this_studio/Designer/models/qwen2.5-3b-instruct-q8_0.gguf"  # Update this path
 INPUT_JSON_PATH = "Test1.json"
 OUTPUT_JSON_PATH = "powerpoint_layout.json"
-MAX_NEW_TOKENS = 4096*2
+MAX_TOKENS = 2000
+
+# GPU layers - T4 has 16GB VRAM, safe to use all layers
+N_GPU_LAYERS = 35  # Qwen 2.5-3B has ~26-35 layers, this ensures all on GPU
 
 print("=" * 60)
-print("STARTING MODEL INFERENCE")
+print("STARTING LLAMA.CPP INFERENCE")
 print("=" * 60)
 
 # ----------------------------
-# LOAD MODEL & TOKENIZER
+# LOAD MODEL
 # ----------------------------
-print("\n[1/5] Loading tokenizer...")
-tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-print("✓ Tokenizer loaded")
+print("\n[1/4] Loading model...")
+print(f"Model path: {MODEL_PATH}")
+print(f"GPU layers: {N_GPU_LAYERS}")
 
-print("\n[2/5] Loading model (this may take a while)...")
-model = AutoModelForCausalLM.from_pretrained(
-    MODEL_NAME,
-    torch_dtype=torch.float16,
-    device_map="auto"
+# Check if GPU support is available
+try:
+    import llama_cpp
+    print(f"llama-cpp-python version: {llama_cpp.__version__}")
+except:
+    pass
+
+llm = Llama(
+    model_path=MODEL_PATH,
+    n_ctx=4096,          # Context window
+    n_gpu_layers=N_GPU_LAYERS,
+    n_threads=8,         # CPU threads
+    verbose=True         # Show detailed loading info
 )
-print("✓ Model loaded")
+print("✓ Model loaded successfully")
+print(f"  Backend: {'GPU (CUDA)' if N_GPU_LAYERS > 0 else 'CPU'}")
+print(f"  GPU layers loaded: {llm.n_gpu_layers if hasattr(llm, 'n_gpu_layers') else 'N/A'}")
 
 # ----------------------------
 # LOAD INPUT JSON
 # ----------------------------
-print("\n[3/5] Loading input JSON...")
+print("\n[2/4] Loading input JSON...")
 with open(INPUT_JSON_PATH, "r", encoding="utf-8") as f:
     input_data = json.load(f)
 print(f"✓ Loaded {len(input_data.get('slides', []))} slides")
@@ -42,62 +54,64 @@ print(f"✓ Loaded {len(input_data.get('slides', []))} slides")
 # SYSTEM + USER MESSAGES
 # ----------------------------
 system_message = """
-You are a PowerPoint design agent that generates complete slide specifications.
+You are a PowerPoint Slides designer agent that generates complete slide Layout and the colours of all it's elements.
 
 Your task:
-- Convert slide content into detailed PowerPoint-ready JSON
+- Based on slides content Generate PowerPointLayout-ready as JSON
 - Include ALL design specifications: fonts, sizes, colors, positions, dimensions
 - Specify exact layout coordinates and styling for each element
 - Output VALID JSON ONLY - no explanations, no markdown
 
 Design Guidelines:
-- Slide dimensions: 10 inches width × 7.5 inches height (standard PowerPoint)
+- Slide dimensions: 13 inches width × 7.5 inches height (standard PowerPoint)
 - Use professional fonts: Arial, Calibri, or Times New Roman
-- Title font size: 32-44pt
-- Subtitle font size: 20-28pt
-- Body text font size: 14-18pt
 - Use consistent color schemes
 - Position elements with x, y coordinates (in inches from top-left)
+- Specify each slide number 
+- Specify each element Text Size
 - Specify width and height for all elements
+- Specify color as hex like #1F4E78
+- Specify the layout_type type like Title slide,Bullet point slide,Comparison slide,Paragraph slide
+- Specify the role type like Title slide,Bullet point slide,Comparison slide,Paragraph slide
+
 """
 
 user_message = f"""
 Input presentation content:
 {json.dumps(input_data, indent=2)}
 
-Generate a PowerPoint-Layout JSON with this EXACT structure for each slide:
+Generate a PowerPoint-ready JSON with this EXACT structure for each slide:
 
 {{
   "presentation": {{
     "title": "Presentation Title",
-    "dimensions": {{"width": 10, "height": 7.5, "unit": "inches"}},
+    "dimensions": {{"width": , "height": , "unit": "inches"}},
     "theme": {{
-      "primary_color": "#1F4E78",
-      "secondary_color": "#FFFFFF",
-      "accent_color": "#FFC000",
-      "background_color": "#FFFFFF"
+      "primary_color": "",
+      "secondary_color": "",
+      "accent_color": "",
+      "background_color": ""
     }},
     "slides": [
       {{
-        "slide_number": 1,
-        "layout_type": "title_slide | content | two_column | image_with_text | bullet_list",
+        "slide_number": ,
+        "layout_type": "",
         "background": {{
-          "color": "#FFFFFF",
+          "color": "",
           "image": null
         }},
         "elements": [
           {{
             "type": "text",
-            "role": "title | subtitle | body | bullet_point",
-            "content": "Text content here",
-            "position": {{"x": 0.5, "y": 1.0, "unit": "inches"}},
-            "size": {{"width": 9.0, "height": 1.5, "unit": "inches"}},
+            "role": "",
+            "position": {{"x":, "y": , "unit": "inches"}},
+            "size": {{"width": , "height": , "unit": "inches"}},
             "font": {{
-              "family": "Arial",
-              "size": 44,
-              "bold": true,
-              "italic": false,
-              "color": "#1F4E78",
+              "family": "",
+              "size": ,
+              "bold": ,
+              "italic": ,
+              "color": "",
               "alignment": "center | left | right"
             }},
             "z_index": 1
@@ -105,21 +119,20 @@ Generate a PowerPoint-Layout JSON with this EXACT structure for each slide:
           {{
             "type": "image",
             "content": null,
-            "position": {{"x": 5.5, "y": 2.0, "unit": "inches"}},
-            "size": {{"width": 4.0, "height": 3.0, "unit": "inches"}},
+            "position": {{"x": , "y": , "unit": "inches"}},
+            "size": {{"width": , "height": , "unit": "inches"}},
             "source": "generate",
             "image_prompt": "A professional image showing...",
-            "border": {{"width": 1, "color": "#CCCCCC"}},
-            "z_index": 2
+            "z_index": 
           }},
           {{
             "type": "shape",
             "shape_type": "rectangle | circle | line",
-            "position": {{"x": 0.5, "y": 6.5, "unit": "inches"}},
-            "size": {{"width": 9.0, "height": 0.1, "unit": "inches"}},
-            "fill_color": "#1F4E78",
-            "border": {{"width": 0, "color": null}},
-            "z_index": 0
+            "position": {{"x": , "y": , "unit": "inches"}},
+            "size": {{"width": , "height": , "unit": "inches"}},
+            "fill_color": "",
+            "border": {{"width": , "color": }},
+            "z_index": 
           }}
         ]
       }}
@@ -136,70 +149,60 @@ IMPORTANT:
 - Leave margins: 0.5 inches from edges
 """
 
-messages = [
-    {"role": "system", "content": system_message},
-    {"role": "user", "content": user_message}
-]
+# ----------------------------
+# BUILD PROMPT
+# ----------------------------
+print("\n[3/4] Preparing prompt...")
+
+# Qwen2.5 chat template format
+prompt = f"""<|im_start|>system
+{system_message}<|im_end|>
+<|im_start|>user
+{user_message}<|im_end|>
+<|im_start|>assistant
+"""
+
+print(f"✓ Prompt prepared")
+print(f"  Max tokens to generate: {MAX_TOKENS}")
 
 # ----------------------------
-# APPLY CHAT TEMPLATE
+# GENERATE WITH STREAMING
 # ----------------------------
-print("\n[4/5] Preparing prompt...")
-prompt = tokenizer.apply_chat_template(
-    messages,
-    tokenize=False,
-    add_generation_prompt=True
-)
-
-inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
-input_token_count = inputs["input_ids"].shape[1]
-
-print(f"✓ Prompt prepared: {input_token_count} tokens")
-print(f"  Max new tokens to generate: {MAX_NEW_TOKENS}")
-print(f"  Total max tokens: {input_token_count + MAX_NEW_TOKENS}")
-
-# ----------------------------
-# GENERATE WITH PROGRESS
-# ----------------------------
-print("\n[5/5] Generating response...")
+print("\n[4/4] Generating response...")
 print("=" * 60)
 print("LIVE OUTPUT (streaming):")
 print("-" * 60)
 
-# Create a custom streamer for real-time output
-streamer = TextStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
-
 start_time = time.time()
+full_response = ""
+token_count = 0
 
-with torch.no_grad():
-    output = model.generate(
-        **inputs,
-        max_new_tokens=MAX_NEW_TOKENS,
-        do_sample=False,
-        streamer=streamer,
-        pad_token_id=tokenizer.pad_token_id or tokenizer.eos_token_id
-    )
+# Stream generation with progress
+for output in llm(
+    prompt,
+    max_tokens=MAX_TOKENS,
+    temperature=0.1,
+    top_p=0.9,
+    echo=False,
+    stream=True,
+    stop=["<|im_end|>", "<|endoftext|>"]
+):
+    chunk = output['choices'][0]['text']
+    print(chunk, end='', flush=True)
+    full_response += chunk
+    token_count += 1
 
 generation_time = time.time() - start_time
 
-print("-" * 60)
+print("\n" + "-" * 60)
 print(f"✓ Generation complete in {generation_time:.2f}s")
 
 # ----------------------------
-# DECODE FULL OUTPUT
+# STATISTICS
 # ----------------------------
-input_len = inputs["input_ids"].shape[1]
-generated_tokens = output[0][input_len:]
-tokens_generated = len(generated_tokens)
-
-response_text = tokenizer.decode(
-    generated_tokens,
-    skip_special_tokens=True
-)
-
 print(f"\n📊 Generation Stats:")
-print(f"   - Tokens generated: {tokens_generated}")
-print(f"   - Tokens/second: {tokens_generated/generation_time:.2f}")
+print(f"   - Tokens generated: {token_count}")
+print(f"   - Tokens/second: {token_count/generation_time:.2f}")
 print(f"   - Total time: {generation_time:.2f}s")
 
 # ----------------------------
@@ -220,7 +223,7 @@ def extract_json(text):
     return json.loads(text[start:end])
 
 try:
-    layout_json = extract_json(response_text)
+    layout_json = extract_json(full_response)
     print("✓ Successfully parsed JSON")
     
     # Validate structure
@@ -255,10 +258,10 @@ try:
 except Exception as e:
     print(f"✗ Error parsing JSON: {e}")
     print("\nRAW OUTPUT:")
-    print(response_text)
+    print(full_response)
     
-    # Save raw output for debugging (as txt)
+    # Save raw output for debugging
     debug_file = "raw_output_debug.txt"
     with open(debug_file, "w", encoding="utf-8") as f:
-        f.write(response_text)
+        f.write(full_response)
     print(f"\n✓ Raw output saved to {debug_file} for debugging")

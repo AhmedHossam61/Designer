@@ -5,10 +5,10 @@ from llama_cpp import Llama
 # ----------------------------
 # CONFIG
 # ----------------------------
-MODEL_PATH = "/teamspace/studios/this_studio/Designer/models/qwen2.5-7b-instruct-q4_k_m-00002-of-00002.gguf"  # Update this path
+MODEL_PATH = "/teamspace/studios/this_studio/Designer/models/qwen2.5-3b-instruct-q8_0.gguf"  # Update this path
 INPUT_JSON_PATH = "Test1.json"
 OUTPUT_JSON_PATH = "powerpoint_layout.json"
-MAX_TOKENS = 4096*2*2
+MAX_TOKENS = 4096*2
 
 # GPU layers - adjust based on your VRAM (0 = CPU only, -1 = all layers on GPU)
 N_GPU_LAYERS = -1  # Use -1 for full GPU, 0 for CPU only, or specific number like 20
@@ -26,7 +26,7 @@ print(f"GPU layers: {N_GPU_LAYERS}")
 
 llm = Llama(
     model_path=MODEL_PATH,
-    n_ctx=4096,          # Context window
+    n_ctx=4096*2,          # Context window
     n_gpu_layers=N_GPU_LAYERS,
     n_threads=8,         # CPU threads
     verbose=False
@@ -45,84 +45,77 @@ print(f"✓ Loaded {len(input_data.get('slides', []))} slides")
 # SYSTEM + USER MESSAGES
 # ----------------------------
 system_message = """
-You are a PowerPoint design agent that generates complete slide specifications.
+You are a specialized PowerPoint Layout Generator Agent. You output STRICT JSON only. 
+Your role is to calculate coordinates and design visual aesthetics. 
 
-Your task:
-- Convert slide content into detailed PowerPoint-ready JSON
-- Include ALL design specifications: fonts, sizes, colors, positions, dimensions
-- Specify exact layout coordinates and styling for each element
-- Output VALID JSON ONLY - no explanations, no markdown
+### THE GOLDEN RULE: DATA INTEGRITY
+- **DO NOT** summarize, rewrite, or edit the input text.
+- **DO NOT** fix grammar or shorten sentences.
+- Every string from 'slide title' and 'slide content' must be copied **VERBATIM** (word-for-word) into the JSON 'content' fields.
+- Treat the input text as immutable data.
 
-Design Guidelines:
-- Slide dimensions: 10 inches width × 7.5 inches height (standard PowerPoint)
-- Use professional fonts: Arial, Calibri, or Times New Roman
-- Title font size: 32-44pt
-- Subtitle font size: 20-28pt
-- Body text font size: 14-18pt
-- Use consistent color schemes
-- Position elements with x, y coordinates (in inches from top-left)
-- Specify width and height for all elements
+### YOUR CORE TASKS
+1. **Analyze Slide Content:** Determine layout (Title, Bullet, Comparison, etc.).
+2. **Design Visuals:**
+   - **Shapes:** Use rectangles for header backgrounds or dividers.
+   - **Images:** Generate 'image_prompt' only when there is visual space (X > 7.0).
+3. **Assign Coordinates:** Use a 13.33 x 7.5 inch canvas.
+4. **Apply Theme:** Primary: #2C3E50, Secondary: #E74C3C, Background: #FFFFFF.
+
+### LAYOUT RULES (COORDINATES IN INCHES)
+- **Title Slide:**
+  - Title Text: Center (x=0.6, y=2.5, w=12, h=2), Size 44, Bold.
+  - Subtitle: Center (x=1.0, y=4.5, w=11, h=1.5), Size 24.
+  - Shape: Decorative bottom bar (x=0, y=7.0, w=13.33, h=0.5), Color: Primary.
+
+- **Bullet/Paragraph Slide:**
+  - Header Background Shape: (x=0, y=0, w=13.33, h=1.2), Color: Primary.
+  - Title Text: Left (x=0.5, y=0.1, w=10, h=1), Color: #FFFFFF, Size 32.
+  - Content Text: Left (x=0.5, y=1.5, w=7, h=5), Size 20.
+  - Image (Optional): Right (x=8.0, y=1.5, w=4.5, h=4.5).
+
+- **Comparison Slide:**
+  - Header Shape: (x=0, y=0, w=13.33, h=1.2), Color: Primary.
+  - Title: (x=0.5, y=0.1, w=12, h=1), Color: #FFFFFF.
+  - Column 1 (Left): (x=0.5, y=1.5, w=6, h=5).
+  - Column 2 (Right): (x=7.0, y=1.5, w=6, h=5).
+  - Divider Line (Shape): (x=6.66, y=1.5, w=0.05, h=5), Color: Secondary.
+
+### IMAGE GENERATION LOGIC
+- If the slide text is dense (Definitions, Future Outlook), generate an object:
+  `"type": "image", "source": "generate", "image_prompt": "A futuristic digital illustration of..."`
+- If the slide is a Comparison/List, usually NO image is needed unless there is empty space.
 """
 
 user_message = f"""
-Input presentation content:
+Input Data:
 {json.dumps(input_data, indent=2)}
 
-Generate a PowerPoint-ready JSON with this EXACT structure for each slide:
+### INSTRUCTIONS FOR TEXT MAPPING (STRICT)
+1. **Title Mapping**: Copy "slide title" exactly into the element with `role: "title"`.
+2. **Content Mapping**: 
+   - For Paragraphs: Copy "slide content" exactly into one text element.
+   - For Bullets: Split "slide content" by newlines/bullets, but keep the text of each bullet identical to the source.
+   - For Comparison: Extract text from the Markdown table columns exactly.
+3. **NO GENERATION**: Do not add new information. Only generate the `image_prompt` and the `position/size` coordinates.
 
+### JSON OUTPUT TEMPLATE:
 {{
   "presentation": {{
-    "title": "Presentation Title",
-    "dimensions": {{"width": 10, "height": 7.5, "unit": "inches"}},
-    "theme": {{
-      "primary_color": "#1F4E78",
-      "secondary_color": "#FFFFFF",
-      "accent_color": "#FFC000",
-      "background_color": "#FFFFFF"
-    }},
+    "title": "Literal Title from Input",
+    "dimensions": {{"width": 13.33, "height": 7.5, "unit": "inches"}},
     "slides": [
       {{
         "slide_number": 1,
-        "layout_type": "title_slide | content | two_column | image_with_text | bullet_list",
-        "background": {{
-          "color": "#FFFFFF",
-          "image": null
-        }},
+        "layout_type": "...",
         "elements": [
           {{
             "type": "text",
-            "role": "title | subtitle | body | bullet_point",
-            "content": "Text content here",
-            "position": {{"x": 0.5, "y": 1.0, "unit": "inches"}},
-            "size": {{"width": 9.0, "height": 1.5, "unit": "inches"}},
-            "font": {{
-              "family": "Arial",
-              "size": 44,
-              "bold": true,
-              "italic": false,
-              "color": "#1F4E78",
-              "alignment": "center | left | right"
-            }},
-            "z_index": 1
-          }},
-          {{
-            "type": "image",
-            "content": null,
-            "position": {{"x": 5.5, "y": 2.0, "unit": "inches"}},
-            "size": {{"width": 4.0, "height": 3.0, "unit": "inches"}},
-            "source": "generate",
-            "image_prompt": "A professional image showing...",
-            "border": {{"width": 1, "color": "#CCCCCC"}},
-            "z_index": 2
-          }},
-          {{
-            "type": "shape",
-            "shape_type": "rectangle | circle | line",
-            "position": {{"x": 0.5, "y": 6.5, "unit": "inches"}},
-            "size": {{"width": 9.0, "height": 0.1, "unit": "inches"}},
-            "fill_color": "#1F4E78",
-            "border": {{"width": 0, "color": null}},
-            "z_index": 0
+            "role": "title",
+            "content": "[EXACT_TEXT_FROM_INPUT]",
+            "position": {{...}},
+            "size": {{...}},
+            "font": {{...}}
           }}
         ]
       }}
@@ -130,13 +123,8 @@ Generate a PowerPoint-ready JSON with this EXACT structure for each slide:
   }}
 }}
 
-IMPORTANT:
-- Include position (x, y) and size (width, height) for EVERY element
-- Use consistent color scheme throughout
-- Z-index determines layering (0=back, higher=front)
-- For bullet lists, create separate text elements for each bullet
-- Ensure no elements overlap unless intentional
-- Leave margins: 0.5 inches from edges
+ACT AS A COMPILER. DO NOT CHANGE THE TEXT.
+Generate JSON:
 """
 
 # ----------------------------
