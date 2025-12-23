@@ -6,7 +6,7 @@ from llama_cpp import Llama
 # CONFIG
 # ----------------------------
 MODEL_PATH = "/teamspace/studios/this_studio/Designer/models/qwen2.5-3b-instruct-q8_0.gguf"  # Update this path
-INPUT_JSON_PATH = "noha.json"
+INPUT_JSON_PATH = "Test1.json"
 OUTPUT_JSON_PATH = "powerpoint_layout.json"
 MAX_TOKENS = 4096*2
 
@@ -122,6 +122,9 @@ STRICT RULES:
 5. Every text element MUST include:
    - content_placeholder
    - assigned_shape_id
+6. Image elements are OPTIONAL.
+   - If an image is not needed, DO NOT include an image element.
+   - If included, image_prompt MUST be generic and abstract.
 
 OUTPUT FORMAT (DO NOT CHANGE STRUCTURE):
 
@@ -177,35 +180,45 @@ OUTPUT FORMAT (DO NOT CHANGE STRUCTURE):
               "color": "#000000"
             },
             "z_index": 1
+          },
+          {
+            "id": "image_1",
+            "type": "image",
+            "source": "generate",
+            "image_prompt": "A clean minimal illustration representing a generic concept, flat style, blue and white color palette.",
+            "position": { "x": 8.0, "y": 1.5, "unit": "inches" },
+            "size": { "width": 4.5, "height": 4.5, "unit": "inches" },
+            "z_index": 1
           }
         ]
       }
     ]
   }
 }
-
 """
 
-user_message = user_message.format(
-    input_data=json.dumps(input_data, indent=2)
-)
-
-
 # ----------------------------
-# BUILD PROMPT
+# BUILD PROMPT (FIX: Uncomment this line!)
 # ----------------------------
 print("\n[3/4] Preparing prompt...")
+
+# Format the user message with actual input data - use simple replacement to avoid brace escaping issues
+user_message_formatted = user_message.replace(
+    "{input_data}",
+    json.dumps(input_data, indent=2)
+)
 
 # Qwen2.5 chat template format
 prompt = f"""<|im_start|>system
 {system_message}<|im_end|>
 <|im_start|>user
-{user_message}<|im_end|>
+{user_message_formatted}<|im_end|>
 <|im_start|>assistant
 """
 
 print(f"✓ Prompt prepared")
 print(f"  Max tokens to generate: {MAX_TOKENS}")
+print(f"  Input slides to process: {len(input_data.get('slides', []))}")
 
 # ----------------------------
 # GENERATE WITH STREAMING
@@ -271,7 +284,16 @@ try:
     # Validate structure
     if "presentation" in layout_json:
         slides = layout_json["presentation"].get("slides", [])
-        print(f"✓ Found {len(slides)} slides in output")
+        input_slides = len(input_data.get('slides', []))
+        output_slides = len(slides)
+        
+        print(f"✓ Input slides: {input_slides}")
+        print(f"✓ Output slides: {output_slides}")
+        
+        if input_slides == output_slides:
+            print("✓ Slide count matches!")
+        else:
+            print(f"⚠ WARNING: Slide count mismatch! Expected {input_slides}, got {output_slides}")
         
         # Validate each slide has required design specs
         for i, slide in enumerate(slides):
