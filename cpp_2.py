@@ -6,8 +6,8 @@ from llama_cpp import Llama
 # CONFIG
 # ----------------------------
 MODEL_PATH = "/teamspace/studios/this_studio/Designer/models/qwen2.5-3b-instruct-q8_0.gguf"  # Update this path
-INPUT_JSON_PATH = "Test1.json"
-OUTPUT_JSON_PATH = "powerpoint_layout.json"
+INPUT_JSON_PATH = "noha.json"
+OUTPUT_JSON_PATH = "powerpoint_layout_10.json"
 MAX_TOKENS = 4096*2
 
 # GPU layers - adjust based on your VRAM (0 = CPU only, -1 = all layers on GPU)
@@ -43,66 +43,72 @@ print(f"✓ Loaded {len(input_data.get('slides', []))} slides")
 
 # ----------------------------
 # SYSTEM + USER MESSAGES
+
 system_message = """
 You are a deterministic PowerPoint Layout Generator Agent.
 
-You MUST output STRICT JSON only.
-You MUST NOT generate or paraphrase slide content.
-You ONLY generate layout, structure, positions, and placeholders.
+OUTPUT RULES (CRITICAL):
+- Output STRICT JSON only. No markdown, no commentary.
+- Do NOT generate or paraphrase slide content.
+- All text must be placeholders only, and must appear ONLY inside shapes as a "text" field.
 
-CONTENT RULE (CRITICAL):
-- DO NOT write real text, summaries, bullets, or sentences.
-- ALL text fields MUST be placeholders.
-- Valid placeholders ONLY:
-  - {{TITLE}}
-  - {{SUBTITLE}}
-  - {{CONTENT}}
-  - {{LEFT_CONTENT}}
-  - {{RIGHT_CONTENT}}
+PLACEHOLDERS (ONLY):
+- {{TITLE}}
+- {{CONTENT}}
 
-If you generate real semantic text, the output is INVALID.
+SLIDE RULES (CRITICAL):
+- input_data.slides is an array.
+- Generate EXACTLY one output slide per input slide.
+- Preserve order.
+- slide_number starts at 1 and increments sequentially.
+- Do NOT merge, drop, or add slides.
 
-ITERATION RULE (CRITICAL):
-- The input JSON contains an array called: input_data.slides
-- You MUST generate EXACTLY ONE output slide for EACH input slide
-- If input contains N slides, output MUST contain N slides
-- Slide order MUST be preserved
-- slide_number MUST start from 1 and increment sequentially
-- Do NOT merge slides
-- Do NOT drop slides
-- Do NOT add extra slides
+ANALYSIS & IMAGE RULE (CRITICAL):
+- Carefully analyze each input slide's structure/metadata to decide the best layout_type.
+- IMAGE EVALUATION: For each slide, check if an image adds value. 
+- If "layout_type" is 'bullet' or 'paragraph', prioritize a split-layout (text on one side, image on the other).
+- If an image is included, you MUST adjust the size and position of the "content" shape to ensure it does not overlap with the image.
+- If an image is not clearly beneficial for the specific structure, OMIT the image element.
 
-YOUR RESPONSIBILITIES:
-1. Choose layout_type for each slide (title, bullet, paragraph, comparison).
-2. Place shapes, text containers, and optional images.
-3. Explicitly assign which placeholder belongs to which shape or region.
-4. Use fixed coordinates on a 13.33 × 7.5 inch canvas.
+ELEMENT & INDEXING RULES (CRITICAL):
+- Each slide MUST have exactly 2 shapes: 1 title shape and 1 content shape.
+- UNIQUE IDs: Every element "id" MUST be unique across the entire presentation. 
+- You MUST append the current slide_number to every ID (e.g., "title_shape_1", "content_shape_1", "image_1", then "title_shape_2", etc.).
 
-THEME (FIXED):
-- Primary: #2C3E50
-- Secondary: #E74C3C
-- Background: #FFFFFF
+DIFFUSION PROMPT (CRITICAL):
+
+INTENT:
+- image_prompt must describe a visually rich SCENE, not a concept label.
+- Think like a visual art director: describe what is visible, how it is composed, and how it feels.
+
+STRUCTURE (REQUIRED):
+Each image_prompt MUST include, in natural language:
+1. Subject / scene description (abstract or realistic, but visual)
+2. Composition & camera (e.g., wide shot, isometric, close-up, depth)
+3. Style (e.g., minimalist illustration, cinematic photo, 3D render, flat design)
+4. Lighting & color mood (e.g., soft light, high contrast, muted palette)
+5. Quality modifiers (e.g., high detail, professional, clean)
+6. Negative constraints (MANDATORY phrase at the end):
+   "no text, no logos, no labels, no watermark, no symbols, no icons"
+
+STRICT RULES:
+- image_prompt must be diffusion-ready prose (NOT a title, keyword list, or diagram name).
+- NEVER include slide content, brands, proper nouns, numbers, charts, or readable symbols.
+- Prompts MUST vary semantically across slides (scene, style, or composition must change).
+- Prefer abstract or symbolic visuals over literal diagrams.
+- Avoid instructional visuals (no arrows, no callouts, no UI elements).
+
+LAYOUT AWARENESS:
+- Image composition must match placement:
+  - Side image → balanced negative space toward text side
+  - Smaller image → focused subject, low clutter
+- NEVER assume full-slide usage.
+
 
 CANVAS:
-- Width: 13.33 inches
-- Height: 7.5 inches
-
-GLOBAL RULES:
-- All Bullet / Paragraph / Comparison slides MUST have:
-  - A rectangle header shape at y = 0
-  - Title text placed ON TOP of that rectangle
-- Every text element MUST declare:
-  - content_placeholder
-  - assigned_shape_id (or null)
-
-IMAGE RULES:
-- Images are OPTIONAL
-- If generated, image_prompt MUST be generic and abstract
-- NEVER include slide content inside image_prompt
-
-VALID image_prompt example:
-"A clean minimal illustration representing a generic technology concept, flat style, blue and white palette."
-
+- 13.33 × 7.5 inches.
+- Use numeric coordinates (in inches) for positions and sizes, but choose values yourself.
+- Do not specify font sizes, font families, or exact color codes unless strongly necessary.
 """
 
 
@@ -112,30 +118,13 @@ Input Data (structure only, content is external):
 {input_data}
 
 TASK:
-Generate ONLY the layout JSON.
+Generate ONLY the layout JSON for all slides.
 
-STRICT RULES:
-1. DO NOT generate real text.
-2. Use placeholders ONLY.
-3. Generate ONE output slide per input slide.
-4. Preserve slide order.
-5. Every text element MUST include:
-   - content_placeholder
-   - assigned_shape_id
-6. Image elements are OPTIONAL.
-   - If an image is not needed, DO NOT include an image element.
-   - If included, image_prompt MUST be generic and abstract.
-
-OUTPUT FORMAT (DO NOT CHANGE STRUCTURE):
+OUTPUT FORMAT (STRICT):
 
 {
   "presentation": {
-    "title": "{{TITLE}}",
-    "dimensions": {
-      "width": 13.33,
-      "height": 7.5,
-      "unit": "inches"
-    },
+    "dimensions": { "width": 13.33, "height": 7.5, "unit": "inches" },
     "slides": [
       {
         "slide_number": 1,
@@ -143,59 +132,50 @@ OUTPUT FORMAT (DO NOT CHANGE STRUCTURE):
         "layout_type": "title | bullet | paragraph | comparison",
         "elements": [
           {
-            "id": "shape_header_1",
+            "id": "title_shape_1",
             "type": "shape",
-            "shape_type": "rectangle",
-            "fill_color": "#2C3E50",
-            "position": { "x": 0, "y": 0, "unit": "inches" },
-            "size": { "width": 13.33, "height": 1.2, "unit": "inches" },
-            "z_index": 0
-          },
-          {
-            "id": "text_title_1",
-            "type": "text",
             "role": "title",
-            "content_placeholder": "{{TITLE}}",
-            "assigned_shape_id": "shape_header_1",
-            "position": { "x": 0.5, "y": 0.1, "unit": "inches" },
-            "size": { "width": 12, "height": 1, "unit": "inches" },
-            "font": {
-              "family": "Arial",
-              "size": 32,
-              "color": "#FFFFFF"
-            },
-            "z_index": 1
+            "shape_type": "rectangle | rounded_rectangle | other",
+            "text": "{{TITLE}}",
+            "position": { "x": 0, "y": 0, "unit": "inches" },
+            "size": { "width": 0, "height": 0, "unit": "inches" }
           },
           {
-            "id": "text_content_1",
-            "type": "text",
+            "id": "content_shape_1",
+            "type": "shape",
             "role": "content",
-            "content_placeholder": "{{CONTENT}}",
-            "assigned_shape_id": null,
-            "position": { "x": 0.5, "y": 1.5, "unit": "inches" },
-            "size": { "width": 7, "height": 5, "unit": "inches" },
-            "font": {
-              "family": "Arial",
-              "size": 20,
-              "color": "#000000"
-            },
-            "z_index": 1
-          },
+            "shape_type": "rectangle | rounded_rectangle | other",
+            "text": "{{CONTENT}}",
+            "position": { "x": 0, "y": 0, "unit": "inches" },
+            "size": { "width": 0, "height": 0, "unit": "inches" }
+          }
+
+          // OPTIONAL: include this element ONLY if needed; otherwise omit it entirely
+          ,
           {
             "id": "image_1",
             "type": "image",
             "source": "generate",
-            "image_prompt": "A clean minimal illustration representing a generic concept, flat style, blue and white color palette.",
-            "position": { "x": 8.0, "y": 1.5, "unit": "inches" },
-            "size": { "width": 4.5, "height": 4.5, "unit": "inches" },
-            "z_index": 1
+            "image_prompt": "diffusion-ready prompt fit the slide content ...",
+            "position": { "x": 0, "y": 0, "unit": "inches" },
+            "size": { "width": 0, "height": 0, "unit": "inches" }
           }
         ]
       }
     ]
   }
 }
+
+
+NOTES (STRICT):
+- "elements" must contain EXACTLY 2 shapes and 0 or 1 image.
+- Do NOT include any "text" elements anywhere.
+- If no image is needed for a slide, OMIT the image element entirely from the "elements" array.
+- If included, only ONE image per slide and it must fit the reserved space (do NOT default to full-slide).
+- Replace all 0 values with appropriate numeric coordinates/sizes.
+- image_prompt must be diffusion-ready, varied, and aligned to placement. Include: composition, style, lighting, mood, quality, "no text".
 """
+
 
 # ----------------------------
 # BUILD PROMPT (FIX: Uncomment this line!)

@@ -6,6 +6,8 @@ model_cache/
 logs/
 models/
 # C extensions
+slides15.json
+slides.json
 *.so
 generated_images/
 tst1/
