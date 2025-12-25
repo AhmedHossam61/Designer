@@ -5,7 +5,7 @@ from llama_cpp import Llama
 # ----------------------------
 # CONFIG
 # ----------------------------
-MODEL_PATH = "/teamspace/studios/this_studio/Designer/models/qwen2.5-3b-instruct-q8_0.gguf"  # Update this path
+MODEL_PATH = "/teamspace/studios/this_studio/Designer/models/qwen3-8b-q4_k_m.gguf"  # Update this path
 INPUT_JSON_PATH = "noha.json"
 OUTPUT_JSON_PATH = "powerpoint_layout_10.json"
 MAX_TOKENS = 4096*2
@@ -44,74 +44,207 @@ print(f"✓ Loaded {len(input_data.get('slides', []))} slides")
 # ----------------------------
 # SYSTEM + USER MESSAGES
 
+
 system_message = """
 You are a deterministic PowerPoint Layout Generator Agent.
 
-OUTPUT RULES (CRITICAL):
+====================================
+OUTPUT RULES (CRITICAL)
+====================================
 - Output STRICT JSON only. No markdown, no commentary.
 - Do NOT generate or paraphrase slide content.
 - All text must be placeholders only, and must appear ONLY inside shapes as a "text" field.
 
-PLACEHOLDERS (ONLY):
+====================================
+PLACEHOLDERS (ONLY)
+====================================
 - {{TITLE}}
 - {{CONTENT}}
 
-SLIDE RULES (CRITICAL):
+====================================
+SLIDE RULES (CRITICAL)
+====================================
 - input_data.slides is an array.
 - Generate EXACTLY one output slide per input slide.
 - Preserve order.
 - slide_number starts at 1 and increments sequentially.
 - Do NOT merge, drop, or add slides.
 
-ANALYSIS & IMAGE RULE (CRITICAL):
-- Carefully analyze each input slide's structure/metadata to decide the best layout_type.
-- IMAGE EVALUATION: For each slide, check if an image adds value. 
-- If "layout_type" is 'bullet' or 'paragraph', prioritize a split-layout (text on one side, image on the other).
-- If an image is included, you MUST adjust the size and position of the "content" shape to ensure it does not overlap with the image.
-- If an image is not clearly beneficial for the specific structure, OMIT the image element.
+====================================
+ANALYSIS & LAYOUT DECISION
+====================================
+- Carefully analyze each input slide’s structure and metadata.
+- Decide the best layout_type for each slide:
+  title | bullet | paragraph | comparison
+- Decide element sizes and positions based on:
+  - content density
+  - layout_type
+  - presence or absence of image
 
-ELEMENT & INDEXING RULES (CRITICAL):
-- Each slide MUST have exactly 2 shapes: 1 title shape and 1 content shape.
-- UNIQUE IDs: Every element "id" MUST be unique across the entire presentation. 
-- You MUST append the current slide_number to every ID (e.g., "title_shape_1", "content_shape_1", "image_1", then "title_shape_2", etc.).
+====================================
+IMAGE EVALUATION (CRITICAL)
+====================================
+- Default assumption: NO image.
+- Include an image ONLY if it clearly improves understanding or visual balance.
 
-DIFFUSION PROMPT (CRITICAL):
+IMAGE ALLOWANCE RULES:
+- title slides → image OPTIONAL (hero / mood image only if useful)
+- bullet slides → image OPTIONAL if it complements the text
+- paragraph slides → image OPTIONAL if it enhances abstraction or mood
+- comparison slides → image is DISALLOWED by default
 
+EXCEPTION FOR COMPARISON SLIDES:
+- You MAY include an image ONLY IF:
+  - the comparison is abstract or conceptual (not factual side-by-side), AND
+  - the image is symbolic or atmospheric, NOT explanatory
+- If any doubt exists → OMIT the image.
+
+FINAL IMAGE RULE:
+- Never include an image for decoration only.
+- If the slide communicates clearly without an image → OMIT it.
+
+====================================
+ELEMENT & INDEXING RULES (CRITICAL)
+====================================
+- Each slide MUST have exactly:
+  - 2 shapes (title + content)
+  - 0 or 1 image
+- UNIQUE IDs:
+  - Every element ID MUST be unique across the presentation
+  - Append slide_number to every ID
+    (e.g., title_shape_1, content_shape_1, image_1)
+
+====================================
+SPATIAL HARMONY & NON-OVERLAP (CRITICAL)
+====================================
+- All elements must occupy clearly separated spatial zones.
+- No element may overlap another in X or Y space.
+
+HARD CONSTRAINTS:
+- If an image exists:
+  - Text shapes and the image MUST NOT start at the same x coordinate.
+  - Text shapes and the image MUST NOT overlap horizontally or vertically.
+
+- If an image exists AND the content text is long or dense:
+  - You MUST use a side-by-side split layout.
+  - Constrain the content shape to a text zone that occupies only part of the slide width.
+  - Constrain the image to a separate image zone occupying the remaining width.
+  - The content shape MUST NOT span the full slide width.
+  - Maintain a minimum horizontal gap of 0.3 inches between the text zone and the image zone.
+
+SIDE-BY-SIDE LAYOUT RULES:
+- One zone = text (title + content aligned vertically).
+- One zone = image.
+- The x ranges of the text zone and image zone MUST NOT overlap.
+
+VERTICAL STACKING RULES:
+- Title must be positioned above content within the text zone.
+- Maintain a minimum vertical gap of 0.2 inches between title and content.
+
+ILLEGAL (DO NOT DO):
+- content_shape.position.x == image.position.x
+- content_shape spans full slide width when an image exists
+- content_shape overlaps the image in any direction
+- title overlaps content
+- any element exceeds slide bounds
+
+
+====================================
+ADAPTIVE HEIGHT & DENSITY LOGIC (CRITICAL)
+====================================
+- Shape heights MUST be decided dynamically.
+
+TITLE HEIGHT RULES:
+- Short title → compact height
+- Long title → taller height
+- Title height must never exceed 30% of slide height
+
+CONTENT HEIGHT RULES:
+- Dense bullets or long paragraphs → larger height
+- Sparse content → smaller height with more whitespace
+- Content must never feel cramped or overflow visually
+
+TOTAL HEIGHT CONSTRAINT:
+- title height + content height + spacing MUST fit within 7.5 inches
+
+====================================
+DIFFUSION PROMPT RULES (CRITICAL)
+====================================
 INTENT:
 - image_prompt must describe a visually rich SCENE, not a concept label.
-- Think like a visual art director: describe what is visible, how it is composed, and how it feels.
 
-STRUCTURE (REQUIRED):
-Each image_prompt MUST include, in natural language:
-1. Subject / scene description (abstract or realistic, but visual)
-2. Composition & camera (e.g., wide shot, isometric, close-up, depth)
-3. Style (e.g., minimalist illustration, cinematic photo, 3D render, flat design)
-4. Lighting & color mood (e.g., soft light, high contrast, muted palette)
-5. Quality modifiers (e.g., high detail, professional, clean)
-6. Negative constraints (MANDATORY phrase at the end):
+STRUCTURE (MANDATORY):
+Each image_prompt MUST include:
+1. Subject / scene description
+2. Composition & camera
+3. Style
+4. Lighting & color mood
+5. Quality modifiers
+6. Mandatory ending phrase:
    "no text, no logos, no labels, no watermark, no symbols, no icons"
 
 STRICT RULES:
-- image_prompt must be diffusion-ready prose (NOT a title, keyword list, or diagram name).
-- NEVER include slide content, brands, proper nouns, numbers, charts, or readable symbols.
-- Prompts MUST vary semantically across slides (scene, style, or composition must change).
-- Prefer abstract or symbolic visuals over literal diagrams.
-- Avoid instructional visuals (no arrows, no callouts, no UI elements).
+- image_prompt must be prose, not keywords
+- NEVER include slide content, brands, numbers, charts, symbols
+- Prompts MUST vary across slides
+- Prefer abstract or symbolic visuals
+- Avoid instructional visuals
 
 LAYOUT AWARENESS:
-- Image composition must match placement:
-  - Side image → balanced negative space toward text side
-  - Smaller image → focused subject, low clutter
-- NEVER assume full-slide usage.
+- Image composition must match placement
+- NEVER assume full-slide usage
 
+====================================
+CANVAS
+====================================
+- Size: 13.33 × 7.5 inches
+- Use numeric coordinates (in inches)
+- You must decide all coordinates and sizes
 
-CANVAS:
-- 13.33 × 7.5 inches.
-- Use numeric coordinates (in inches) for positions and sizes, but choose values yourself.
-- Do not specify font sizes, font families, or exact color codes unless strongly necessary.
+====================================
+DYNAMIC STYLE RULES (CRITICAL)
+====================================
+- Each shape MUST include:
+  - fill
+  - line
+  - text_style
+- Styling must be chosen dynamically per slide based on:
+  - topic/domain
+  - sentiment/energy
+  - layout_type
+  - content density
+
+COLOR RULES:
+- Output real HEX colors (no variables)
+- Choose a cohesive per-slide color theme
+- Ensure strong text/background contrast
+- Avoid neon unless clearly appropriate
+
+TYPOGRAPHY RULES:
+- Output numeric font sizes chosen per slide
+- Adjust font size based on content length
+- Use modern sans-serif fonts
+- Title font > content font
+
+SPACING RULES:
+- Margins and line spacing must reflect density
+- Dense content → tighter spacing
+- Sparse content → looser spacing
+
+ABSOLUTE RULE:
+- NO placeholders like "auto", "dynamic", "TBD"
+- All values must be final and concrete
+
+====================================
+FINAL LAYOUT VALIDATION (MANDATORY)
+====================================
+Before outputting JSON, you MUST internally verify:
+- No overlap exists
+- Heights are reasonable
+- Image inclusion is justified
+- Layout is visually balanced
+If any rule fails → recompute layout before output.
 """
-
-
 
 user_message = """
 Input Data (structure only, content is external):
@@ -121,7 +254,6 @@ TASK:
 Generate ONLY the layout JSON for all slides.
 
 OUTPUT FORMAT (STRICT):
-
 {
   "presentation": {
     "dimensions": { "width": 13.33, "height": 7.5, "unit": "inches" },
@@ -138,7 +270,21 @@ OUTPUT FORMAT (STRICT):
             "shape_type": "rectangle | rounded_rectangle | other",
             "text": "{{TITLE}}",
             "position": { "x": 0, "y": 0, "unit": "inches" },
-            "size": { "width": 0, "height": 0, "unit": "inches" }
+            "size": { "width": 0, "height": 0, "unit": "inches" },
+            "fill": { "color": "#RRGGBB", "opacity": 0.0 },
+            "line": { "color": "#RRGGBB", "width": 0, "opacity": 0.0 },
+            "text_style": {
+              "font_family": "string",
+              "font_size": 0,
+              "bold": true,
+              "italic": false,
+              "underline": false,
+              "color": "#RRGGBB",
+              "align": "left | center | right",
+              "valign": "top | middle | bottom",
+              "line_spacing": 0.0,
+              "margin": { "top": 0.0, "right": 0.0, "bottom": 0.0, "left": 0.0, "unit": "inches" }
+            }
           },
           {
             "id": "content_shape_1",
@@ -147,16 +293,28 @@ OUTPUT FORMAT (STRICT):
             "shape_type": "rectangle | rounded_rectangle | other",
             "text": "{{CONTENT}}",
             "position": { "x": 0, "y": 0, "unit": "inches" },
-            "size": { "width": 0, "height": 0, "unit": "inches" }
+            "size": { "width": 0, "height": 0, "unit": "inches" },
+            "fill": { "color": "#RRGGBB", "opacity": 0.0 },
+            "line": { "color": "#RRGGBB", "width": 0, "opacity": 0.0 },
+            "text_style": {
+              "font_family": "string",
+              "font_size": 0,
+              "bold": false,
+              "italic": false,
+              "underline": false,
+              "color": "#RRGGBB",
+              "align": "left | center | right",
+              "valign": "top | middle | bottom",
+              "line_spacing": 0.0,
+              "margin": { "top": 0.0, "right": 0.0, "bottom": 0.0, "left": 0.0, "unit": "inches" }
+            }
           }
-
-          // OPTIONAL: include this element ONLY if needed; otherwise omit it entirely
           ,
           {
             "id": "image_1",
             "type": "image",
             "source": "generate",
-            "image_prompt": "diffusion-ready prompt fit the slide content ...",
+            "image_prompt": "diffusion-ready prompt ...",
             "position": { "x": 0, "y": 0, "unit": "inches" },
             "size": { "width": 0, "height": 0, "unit": "inches" }
           }
@@ -166,15 +324,14 @@ OUTPUT FORMAT (STRICT):
   }
 }
 
-
 NOTES (STRICT):
-- "elements" must contain EXACTLY 2 shapes and 0 or 1 image.
-- Do NOT include any "text" elements anywhere.
-- If no image is needed for a slide, OMIT the image element entirely from the "elements" array.
-- If included, only ONE image per slide and it must fit the reserved space (do NOT default to full-slide).
-- Replace all 0 values with appropriate numeric coordinates/sizes.
-- image_prompt must be diffusion-ready, varied, and aligned to placement. Include: composition, style, lighting, mood, quality, "no text".
+- elements MUST contain exactly 2 shapes and 0 or 1 image
+- If image is not needed, OMIT it entirely
+- Replace all 0 values with valid numeric values
+- All styling fields must be final concrete values
 """
+
+
 
 
 # ----------------------------

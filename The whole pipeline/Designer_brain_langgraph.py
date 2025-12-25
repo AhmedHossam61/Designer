@@ -7,7 +7,7 @@ from graph_layout import app
 # ----------------------------
 # CONFIG (keep aligned with your existing script)
 # ----------------------------
-MODEL_PATH = "/teamspace/studios/this_studio/Designer/models/qwen2.5-3b-instruct-q8_0.gguf"
+MODEL_PATH = "/teamspace/studios/this_studio/Designer/models/qwen3-8b-q4_k_m.gguf"
 INPUT_JSON_PATH = "noha.json"
 OUTPUT_JSON_PATH = "powerpoint_layout_10.json"
 MAX_TOKENS = 4096 * 2
