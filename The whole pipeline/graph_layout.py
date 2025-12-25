@@ -87,34 +87,49 @@ def patch_image_path(layout_json: Dict[str, Any], slide_index: int, element_inde
 # ----------------------------
 def node_generate_layout(state: LayoutState) -> LayoutState:
     """
-    Calls Qwen (GGUF via llama.cpp) and captures raw output.
+    Mirror the exact behavior of Designer_brain.py:
+    - Qwen chat template
+    - stream=True
+    - stop=["<|im_end|>", "<|endoftext|>"]
+    - n_ctx=8192, n_threads=8
     """
     try:
         llm = Llama(
             model_path=state["model_path"],
+            n_ctx=4096 * 2,
             n_gpu_layers=state["n_gpu_layers"],
-            n_ctx=4096,
+            n_threads=8,
             verbose=False,
         )
 
-        prompt = (
-            state["system_message"].strip()
-            + "\n\n"
-            + state["user_message"].strip()
-        )
+        prompt = f"""<|im_start|>system
+{state["system_message"]}<|im_end|>
+<|im_start|>user
+{state["user_message"]}<|im_end|>
+<|im_start|>assistant
+"""
 
-        out = llm(
+        full_response = ""
+        token_count = 0
+
+        for output in llm(
             prompt,
             max_tokens=state["max_tokens"],
-            temperature=0.2,
+            temperature=0.1,
             top_p=0.9,
-            repeat_penalty=1.05,
-        )
+            echo=False,
+            stream=True,
+            stop=["<|im_end|>", "<|endoftext|>"],
+        ):
+            chunk = output["choices"][0]["text"]
+            full_response += chunk
+            token_count += 1
 
-        # llama.cpp returns dict with "choices"
-        state["raw_model_output"] = out["choices"][0]["text"]
+        state["raw_model_output"] = full_response
+
     except Exception as e:
         state["errors"].append(f"generate_layout: {e}")
+
     return state
 
 

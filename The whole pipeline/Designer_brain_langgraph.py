@@ -49,7 +49,11 @@ def main():
 
     # Your existing Designer_brain.py uses an f-string template for user_message.
     # We reproduce that behavior WITHOUT changing the text itself:
-    user_message = user_message_template.replace("{json.dumps(input_data, indent=2)}", json.dumps(input_data, indent=2))
+    user_message = user_message_template.replace(
+        "{input_data}",
+        json.dumps(input_data, indent=2)
+    )
+
 
     state = {
         "input_data": input_data,

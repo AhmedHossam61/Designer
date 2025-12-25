@@ -188,6 +188,7 @@ user_message_formatted = user_message.replace(
     json.dumps(input_data, indent=2)
 )
 
+
 # Qwen2.5 chat template format
 prompt = f"""<|im_start|>system
 {system_message}<|im_end|>
