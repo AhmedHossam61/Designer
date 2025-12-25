@@ -279,7 +279,8 @@ try:
         for i, slide in enumerate(slides):
             elements = slide.get("elements", [])
             print(f"  Slide {i+1}: {len(elements)} elements")
-    
+      
+
     # Save to JSON file
     with open(OUTPUT_JSON_PATH, "w", encoding="utf-8") as f:
         json.dump(layout_json, f, indent=2, ensure_ascii=False)
