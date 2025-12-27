@@ -47,11 +47,11 @@ print(f"✓ Loaded {len(input_data.get('slides', []))} slides")
 # Load config file
 #----------------------
 
-with open("config.json", "r") as f:
-    config_data = json.load(f) 
+with open("config.json", "r", encoding="utf-8") as f:
+    config_data = json.load(f)
 
-img_gen_config = config_data["configuration"]["generate_images"]
-print("image generation choise is: ",img_gen_config)
+img_gen_config = config_data.get("configuration", {}).get("generate_images", False)
+print("image generation choice is:", img_gen_config)
 
 # ----------------------------
 # SYSTEM + USER MESSAGES
@@ -124,6 +124,10 @@ ELEMENT & INDEXING RULES (CRITICAL)
 - Each slide MUST have exactly:
   - 2 shapes (title + content)
   - 0 or 1 image
+  - If {img_gen_config} = false:
+  - Each slide MUST have exactly 2 shapes (title + content) and 0 images.
+  - Image elements are forbidden and MUST NOT appear in elements.
+
 - UNIQUE IDs:
   - Every element ID MUST be unique across the presentation
   - Append slide_number to every ID

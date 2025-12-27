@@ -15,6 +15,11 @@ MAX_TOKENS = 4096 * 2 * 2
 N_GPU_LAYERS = -1
 
 
+with open("config.json", "r", encoding="utf-8") as f:
+    config_data = json.load(f)
+
+img_gen_config = config_data.get("configuration", {}).get("generate_images", False)
+print("image generation choice is:", img_gen_config)
 # ----------------------------
 # IMPORTANT:
 # Do NOT change your system/user prompts here.
@@ -50,6 +55,12 @@ def main():
 
     # Your existing Designer_brain.py uses an f-string template for user_message.
     # We reproduce that behavior WITHOUT changing the text itself:
+
+    system_message = system_message.replace(
+    "{{img_gen_config}}",
+    "true" if img_gen_config else "false"
+    )
+
     user_message = user_message_template.replace(
         "{input_data}",
         json.dumps(input_data, indent=2)
