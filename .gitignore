@@ -5,6 +5,8 @@ __pycache__/
 model_cache/
 logs/
 models/
+8_slides.json
+10_slides.json
 # C extensions
 slides15.json
 slides.json

@@ -74,15 +74,37 @@ class ImageGenerationAgent:
             )
 
         # ================= PROMPT TEMPLATES =================
+        # self.quality_prompt = (
+        #     "high quality, ultra detailed, sharp focus, professional lighting, "
+        #     "cinematic composition, 8k, realistic"
+        # )
+
+        # self.default_negative = (
+        #     "low quality, blurry, noisy, deformed, bad anatomy, "
+        #     "extra fingers, extra limbs, watermark, text, logo"
+        # )
+
         self.quality_prompt = (
-            "high quality, ultra detailed, sharp focus, professional lighting, "
-            "cinematic composition, 8k, realistic"
+            "high quality, ultra detailed, sharp focus, professional studio lighting, "
+            "cinematic composition, clean modern corporate editorial style, "
+            "natural colors, high dynamic range, minimal clutter, "
+            "clear subject separation, balanced contrast, subtle depth of field, "
+            "wide composition with generous negative space for slide layout, "
+            "realistic, polished, premium"
         )
 
         self.default_negative = (
-            "low quality, blurry, noisy, deformed, bad anatomy, "
-            "extra fingers, extra limbs, watermark, text, logo"
+            "low quality, worst quality, blurry, noisy, jpeg artifacts, pixelated, "
+            "oversharpened, harsh grain, motion blur, out of frame, cropped, "
+            "deformed, distorted, bad anatomy, extra limbs, extra fingers, "
+            "disfigured, mutated, "
+            "text, typography, letters, numbers, captions, subtitles, labels, "
+            "watermark, signature, logo, brand mark, QR code, barcode, "
+            "icons, symbols, pictograms, signage, "
+            "charts, graphs, diagrams, infographics, UI, app screen, screenshot, "
+            "poster, book cover, comic, frame, border"
         )
+
 
         print("✅ Agent ready!\n")
 

@@ -5,10 +5,12 @@ from llama_cpp import Llama
 # ----------------------------
 # CONFIG
 # ----------------------------
-MODEL_PATH = "/teamspace/studios/this_studio/Designer/models/qwen3-8b-q4_k_m.gguf"  # Update this path
+MODEL_PATH = "/teamspace/studios/this_studio/Designer/models/gemma-3-4b-it-Q8_0.gguf"
 INPUT_JSON_PATH = "noha.json"
-OUTPUT_JSON_PATH = "powerpoint_layout_10.json"
-MAX_TOKENS = 4096*2
+# INPUT_JSON_PATH = "8_slides.json"
+OUTPUT_JSON_PATH = "powerpoint_layout_26_12.json"
+MAX_TOKENS = 4096 * 2 * 2
+N_GPU_LAYERS = -1
 
 # GPU layers - adjust based on your VRAM (0 = CPU only, -1 = all layers on GPU)
 N_GPU_LAYERS = -1  # Use -1 for full GPU, 0 for CPU only, or specific number like 20
@@ -26,7 +28,7 @@ print(f"GPU layers: {N_GPU_LAYERS}")
 
 llm = Llama(
     model_path=MODEL_PATH,
-    n_ctx=4096*2,          # Context window
+    n_ctx=4096*2*2      # Context window
     n_gpu_layers=N_GPU_LAYERS,
     n_threads=8,         # CPU threads
     verbose=False
@@ -41,9 +43,18 @@ with open(INPUT_JSON_PATH, "r", encoding="utf-8") as f:
     input_data = json.load(f)
 print(f"✓ Loaded {len(input_data.get('slides', []))} slides")
 
+#----------------------
+# Load config file
+#----------------------
+
+with open("config.json", "r") as f:
+    config_data = json.load(f) 
+
+img_gen_config = config_data["configuration"]["generate_images"]
+print("image generation choise is: ",img_gen_config)
+
 # ----------------------------
 # SYSTEM + USER MESSAGES
-
 
 system_message = """
 You are a deterministic PowerPoint Layout Generator Agent.
@@ -80,10 +91,14 @@ ANALYSIS & LAYOUT DECISION
   - content density
   - layout_type
   - presence or absence of image
+- If {{img_gen_config}} = false, you MUST assume **no images at all** for all slides.
 
 ====================================
 IMAGE EVALUATION (CRITICAL)
 ====================================
+- This section only applies IF {{img_gen_config}} = true.
+- If {{img_gen_config}} = false, images are disabled and none should appear.
+
 - Default assumption: NO image.
 - Include an image ONLY if it clearly improves understanding or visual balance.
 
@@ -122,32 +137,39 @@ SPATIAL HARMONY & NON-OVERLAP (CRITICAL)
 
 HARD CONSTRAINTS:
 - If an image exists:
-  - Text shapes and the image MUST NOT start at the same x coordinate.
-  - Text shapes and the image MUST NOT overlap horizontally or vertically.
+  - Text shapes and image MUST NOT start at the same x coordinate
+  - Text shapes and image MUST NOT overlap horizontally or vertically
 
-- If an image exists AND the content text is long or dense:
-  - You MUST use a side-by-side split layout.
-  - Constrain the content shape to a text zone that occupies only part of the slide width.
-  - Constrain the image to a separate image zone occupying the remaining width.
-  - The content shape MUST NOT span the full slide width.
-  - Maintain a minimum horizontal gap of 0.3 inches between the text zone and the image zone.
+  - The content shape MUST NOT span the full slide width
+  - Maintain a minimum horizontal gap of 0.3 inches between the text area and the image area
+  
+  - WIDTH BUDGET RULE (MANDATORY WHEN IMAGE EXISTS):
+    - slide_width = 13.33
+    - Let g = horizontal gap between text and image, and g MUST be >= 0.3
+    - Then the following MUST hold:
+      - content_shape.size.width + image.size.width + g <= slide_width
+    - If you cannot satisfy this rule without overlap, you MUST reduce content_shape.size.width and/or image.size.width.
+    - If still impossible while keeping the image meaningful size minimums, OMIT the image.
 
-SIDE-BY-SIDE LAYOUT RULES:
-- One zone = text (title + content aligned vertically).
-- One zone = image.
-- The x ranges of the text zone and image zone MUST NOT overlap.
+  - The image MUST have meaningful visual size (not a tiny corner thumbnail):
+    - image.size.width MUST be >= 0.25 * slide_width  (slide_width = 13.33)
+    OR
+    - image.size.height MUST be >= 0.35 * slide_height (slide_height = 7.5)
+    - If you cannot satisfy these minimums without overlap, OMIT the image
 
-VERTICAL STACKING RULES:
-- Title must be positioned above content within the text zone.
-- Maintain a minimum vertical gap of 0.2 inches between title and content.
+- Side-by-side layout:
+  - One zone = text, one zone = image
+  - Maintain a minimum horizontal gap of 0.3 inches
+- Vertical stacking:
+  - Title must be above content
+  - Maintain a minimum vertical gap of 0.2 inches
 
 ILLEGAL (DO NOT DO):
-- content_shape.position.x == image.position.x
+- content_shape.x == image.x
 - content_shape spans full slide width when an image exists
-- content_shape overlaps the image in any direction
+- image overlaps content_shape
 - title overlaps content
-- any element exceeds slide bounds
-
+- elements exceeding slide bounds
 
 ====================================
 ADAPTIVE HEIGHT & DENSITY LOGIC (CRITICAL)
@@ -245,6 +267,7 @@ Before outputting JSON, you MUST internally verify:
 - Layout is visually balanced
 If any rule fails → recompute layout before output.
 """
+
 
 user_message = """
 Input Data (structure only, content is external):

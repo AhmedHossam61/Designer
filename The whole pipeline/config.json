@@ -1,0 +1,14 @@
+{
+  "topic": "Blood Circulation",
+  "slides_count": 7,
+  "project_title": "Understanding Blood Circulation",
+  "target_audience": "Students, Healthcare Professionals, General Public",
+  "visual_style": "Modern and clean with a focus on clarity of information.",
+  "tone_of_voice": "Educational and informative without being overly technical.",
+  "configuration": {
+    "use_animations": true,
+    "use_transitions": false,
+    "generate_images": false,
+    "generate_manim_video": false
+  }
+}
