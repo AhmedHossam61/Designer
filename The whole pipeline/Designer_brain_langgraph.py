@@ -1,17 +1,17 @@
 import json
 from pathlib import Path
-
+import re
 from graph_layout import app
 
 
 # ----------------------------
 # CONFIG (keep aligned with your existing script)
 # ----------------------------
-MODEL_PATH = "/teamspace/studios/this_studio/Designer/models/gemma-3-4b-it-Q8_0.gguf"
+MODEL_PATH = "/teamspace/studios/this_studio/Designer/models/qwen3-8b-q4_k_m.gguf"
 INPUT_JSON_PATH = "noha.json"
 # INPUT_JSON_PATH = "8_slides.json"
 OUTPUT_JSON_PATH = "powerpoint_layout_26_12.json"
-MAX_TOKENS = 4096 * 2 * 2
+MAX_TOKENS = 4096 * 2 * 2 * 2
 N_GPU_LAYERS = -1
 
 
@@ -33,7 +33,6 @@ def _load_prompts_from_designer_brain(path="Designer_brain.py"):
     text = Path(path).read_text(encoding="utf-8")
 
     # Extract system_message triple-quoted string
-    import re
     sm = re.search(r'system_message\s*=\s*"""(.*?)"""', text, re.DOTALL)
     um = re.search(r'user_message\s*=\s*f?"""(.*?)"""', text, re.DOTALL)
 
@@ -55,11 +54,6 @@ def main():
 
     # Your existing Designer_brain.py uses an f-string template for user_message.
     # We reproduce that behavior WITHOUT changing the text itself:
-
-    system_message = system_message.replace(
-    "{{img_gen_config}}",
-    "true" if img_gen_config else "false"
-    )
 
     user_message = user_message_template.replace(
         "{input_data}",

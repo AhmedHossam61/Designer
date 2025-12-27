@@ -5,11 +5,11 @@ from llama_cpp import Llama
 # ----------------------------
 # CONFIG
 # ----------------------------
-MODEL_PATH = "/teamspace/studios/this_studio/Designer/models/gemma-3-4b-it-Q8_0.gguf"
+MODEL_PATH = "/teamspace/studios/this_studio/Designer/models/qwen3-8b-q4_k_m.gguf"
 INPUT_JSON_PATH = "noha.json"
 # INPUT_JSON_PATH = "8_slides.json"
 OUTPUT_JSON_PATH = "powerpoint_layout_26_12.json"
-MAX_TOKENS = 4096 * 2 * 2
+MAX_TOKENS = 4096 * 2 * 2 * 2
 N_GPU_LAYERS = -1
 
 # GPU layers - adjust based on your VRAM (0 = CPU only, -1 = all layers on GPU)
@@ -28,7 +28,7 @@ print(f"GPU layers: {N_GPU_LAYERS}")
 
 llm = Llama(
     model_path=MODEL_PATH,
-    n_ctx=4096*2*2      # Context window
+    n_ctx=4096*2*2*2,      # Context window
     n_gpu_layers=N_GPU_LAYERS,
     n_threads=8,         # CPU threads
     verbose=False
@@ -124,7 +124,7 @@ ELEMENT & INDEXING RULES (CRITICAL)
 - Each slide MUST have exactly:
   - 2 shapes (title + content)
   - 0 or 1 image
-  - If {img_gen_config} = false:
+  - If {{img_gen_config}} = false:
   - Each slide MUST have exactly 2 shapes (title + content) and 0 images.
   - Image elements are forbidden and MUST NOT appear in elements.
 
@@ -272,7 +272,7 @@ Before outputting JSON, you MUST internally verify:
 If any rule fails → recompute layout before output.
 """
 
-
+# USER MESSAGE
 user_message = """
 Input Data (structure only, content is external):
 {input_data}
@@ -357,6 +357,13 @@ NOTES (STRICT):
 - Replace all 0 values with valid numeric values
 - All styling fields must be final concrete values
 """
+
+
+# Inject the image generation config value into the system message
+system_message = system_message.replace(
+    "{{img_gen_config}}",
+    "true" if img_gen_config else "false"
+)
 
 # ----------------------------
 # BUILD PROMPT (FIX: Uncomment this line!)

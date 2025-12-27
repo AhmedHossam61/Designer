@@ -96,7 +96,7 @@ def node_generate_layout(state: LayoutState) -> LayoutState:
     try:
         llm = Llama(
             model_path=state["model_path"],
-            n_ctx=  20480 ,
+            n_ctx=  22000 ,
             n_gpu_layers=state["n_gpu_layers"],
             n_threads=8,
             verbose=False,
