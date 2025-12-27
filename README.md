@@ -1,7 +1,9 @@
 # Designer
 
 Short README for the `Designer` workspace.
-
+**Downloading models**
+`wget "https://huggingface.co/unsloth/gemma-3-4b-it-GGUF/resolve/main/gemma-3-4b-it-Q4_K_M.gguf?download=true" \
+     -O ./gemma-3-4b-it-Q8_0.gguf`
 **Project Overview**
 
 - `Designer` is a small Python workspace containing utilities and experiments. The repository currently contains two scripts: `gpu_diagnostic.py` and `tst1.py`.
