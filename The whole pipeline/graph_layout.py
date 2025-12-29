@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+import sys
 import json
 from typing import Any, Dict, List, TypedDict, Optional
 
@@ -102,11 +102,11 @@ def node_generate_layout(state: LayoutState) -> LayoutState:
             verbose=False,
         )
 
-        prompt = f"""<|im_start|>system
+        prompt = f"""<|im_start|>system<|im_sep|>
 {state["system_message"]}<|im_end|>
-<|im_start|>user
+<|im_start|>user<|im_sep|>
 {state["user_message"]}<|im_end|>
-<|im_start|>assistant
+<|im_start|>assistant<|im_sep|>
 """
 
         full_response = ""
@@ -122,6 +122,8 @@ def node_generate_layout(state: LayoutState) -> LayoutState:
             stop=["<|im_end|>", "<|endoftext|>"],
         ):
             chunk = output["choices"][0]["text"]
+            sys.stdout.write(chunk)      # show immediately
+            sys.stdout.flush()
             full_response += chunk
             token_count += 1
 

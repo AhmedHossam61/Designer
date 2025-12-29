@@ -57,6 +57,7 @@ print("image generation choice is:", img_gen_config)
 # SYSTEM + USER MESSAGES
 
 system_message = """
+/no_think
 You are a deterministic PowerPoint Layout Generator Agent.
 
 ====================================
@@ -378,11 +379,11 @@ user_message_formatted = user_message.replace(
 
 
 # Qwen2.5 chat template format
-prompt = f"""<|im_start|>system
+prompt = f"""<|im_start|>system<|im_sep|>
 {system_message}<|im_end|>
-<|im_start|>user
+<|im_start|>user<|im_sep|>
 {user_message_formatted}<|im_end|>
-<|im_start|>assistant
+<|im_start|>assistant<|im_sep|>
 """
 
 print(f"✓ Prompt prepared")
