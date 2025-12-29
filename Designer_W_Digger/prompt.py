@@ -2,6 +2,7 @@
 from langchain_core.prompts import PromptTemplate
 
 template = """
+/no_think
 <|im_start|>system
 You are an expert Research Assistant and Presentation Designer. Your goal is to produce a JSON object with presentation slides based on the user input.
 

@@ -1,0 +1,45 @@
+{
+  "workflow": {
+    "name": "Research + Designer Pipeline",
+    "version": "1.0"
+  },
+  
+  "research_agent": {
+    "model_path": "C:\\Users\\dell\\Downloads\\DIGGER\\model_\\models--unsloth--Qwen3-8B-GGUF\\snapshots\\a6adef130ffb23ddaf1a62fec9dced968c9bc482\\Qwen3-8B-UD-Q6_K_XL.gguf",
+    "temperature": 0.1,
+    "max_tokens": 4096,
+    "n_ctx": 8192,
+    "n_threads": 8,
+    "n_gpu_layers": 30,
+    "default_slide_count": 5
+  },
+  
+  "designer_agent": {
+    "model_path": "/teamspace/studios/this_studio/Designer/models/qwen3-8b-q4_k_m.gguf",
+    "max_tokens": 32768,
+    "n_gpu_layers": -1,
+    "n_ctx": 22000,
+    "n_threads": 8
+  },
+  
+  "presentation": {
+    "target_audience": "General audience",
+    "visual_style": "Modern and clean with a focus on clarity",
+    "tone_of_voice": "Educational and informative"
+  },
+  
+  "configuration": {
+    "use_animations": true,
+    "use_transitions": false,
+    "generate_images": true,
+    "generate_manim_video": false,
+    "save_intermediate_files": true
+  },
+  
+  "output": {
+    "content_json_prefix": "content_",
+    "layout_json_prefix": "layout_",
+    "output_directory": "./output",
+    "timestamp_format": "%Y%m%d_%H%M%S"
+  }
+}

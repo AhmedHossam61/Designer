@@ -5,7 +5,7 @@ from langchain_classic.agents import create_react_agent, AgentExecutor
 from langchain_core.prompts import PromptTemplate
 from langchain_classic.agents import Tool
 from Tools import duckduckgo_search, youtube_search_tool, fetch_url, extract_pdf_text, extract_docx_text
-from prompt import prompt_template
+# from prompt import prompt_template
 tools = [
     Tool(
         name="duckduckgo_search",
@@ -37,7 +37,7 @@ tools = [
 
 # 2. SETUP MODEL (Fix: Temperature and Context)
 llm = LlamaCpp(
-    model_path=r"C:\Users\dell\Downloads\DIGGER\model_\models--unsloth--Qwen3-8B-GGUF\snapshots\a6adef130ffb23ddaf1a62fec9dced968c9bc482\Qwen3-8B-UD-Q6_K_XL.gguf",
+    model_path="/teamspace/studios/this_studio/Designer/models/Qwen3-8B-Q4_K_M.gguf",
     temperature=0.1,  # FIXED: 9.0 will output pure gibberish. 0.1 is best for following JSON rules.
     max_tokens=4096,
     n_ctx=8192,  # Reduced for stability (40k is very high for local execution unless you have 24GB+ VRAM)
