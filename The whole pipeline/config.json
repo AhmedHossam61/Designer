@@ -8,7 +8,7 @@
   "configuration": {
     "use_animations": true,
     "use_transitions": false,
-    "generate_images": true,
+    "generate_images": false,
     "generate_manim_video": false
   }
 }

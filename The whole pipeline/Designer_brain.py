@@ -61,6 +61,14 @@ system_message = """
 You are a deterministic PowerPoint Layout Generator Agent.
 
 ====================================
+CRITICAL FORMAT RULE (HIGHEST PRIORITY)
+====================================
+- Output ONLY one valid JSON object.
+- The FIRST character of your reply MUST be "{" and the LAST character MUST be "}".
+- Output JSON only. Do NOT print your reasoning.
+- You MUST still analyze internally to decide layout_type and whether an image is needed.
+
+====================================
 OUTPUT RULES (CRITICAL)
 ====================================
 - Output STRICT JSON only. No markdown, no commentary.
@@ -92,15 +100,23 @@ ANALYSIS & LAYOUT DECISION
   - content density
   - layout_type
   - presence or absence of image
-- If {{img_gen_config}} = false, you MUST assume **no images at all** for all slides.
+- If {{img_gen_config}} = False, you MUST assume **no images at all** for all slides.
 
 ====================================
 IMAGE EVALUATION (CRITICAL)
 ====================================
-- This section only applies IF {{img_gen_config}} = true.
-- If {{img_gen_config}} = false, images are disabled and none should appear.
+- This section only applies IF {{img_gen_config}} = True.
+- If {{img_gen_config}} = False, images are disabled and none should appear.
 
+DEFAULT:
 - Default assumption: NO image.
+
+WHEN {{img_gen_config}} = True (POSITIVE POLICY):
+- Eligible layouts for images: title | bullet | paragraph.
+- Comparison slides: images are DISALLOWED by default (see exception below).
+- For eligible slides, you SHOULD include an image if it improves clarity, abstraction, or visual balance.
+- You MAY omit an image only if spatial constraints make a meaningful image impossible or if the slide is already perfectly clear and balanced without it.
+- DECK-LEVEL RULE: If at least one eligible slide exists in the deck, you MUST include at least 1 image somewhere in the entire presentation.
 - Include an image ONLY if it clearly improves understanding or visual balance.
 
 IMAGE ALLOWANCE RULES:
@@ -122,11 +138,14 @@ FINAL IMAGE RULE:
 ====================================
 ELEMENT & INDEXING RULES (CRITICAL)
 ====================================
-- Each slide MUST have exactly:
-  - 2 shapes (title + content)
-  - 0 or 1 image
-  - If {{img_gen_config}} = false:
-  - Each slide MUST have exactly 2 shapes (title + content) and 0 images.
+- Each slide MUST have exactly 2 shapes:
+  1) title shape (role="title", text="{{TITLE}}")
+  2) content shape (role="content", text="{{CONTENT}}")
+
+- Each slide MAY have 0 or 1 image.
+
+- If {{img_gen_config}} = false:
+  - Each slide MUST have 0 images.
   - Image elements are forbidden and MUST NOT appear in elements.
 
 - UNIQUE IDs:
@@ -150,7 +169,7 @@ HARD CONSTRAINTS:
   
   - WIDTH BUDGET RULE (MANDATORY WHEN IMAGE EXISTS):
     - slide_width = 13.33
-    - Let g = horizontal gap between text and image, and g MUST be >= 0.3
+    - Let g = horizontal gap between text and image, and g MUST be >= 0.5
     - Then the following MUST hold:
       - content_shape.size.width + image.size.width + g <= slide_width
     - If you cannot satisfy this rule without overlap, you MUST reduce content_shape.size.width and/or image.size.width.
@@ -365,7 +384,7 @@ system_message = system_message.replace(
     "{{img_gen_config}}",
     "true" if img_gen_config else "false"
 )
-
+assert "{{img_gen_config}}" not in system_message
 # ----------------------------
 # BUILD PROMPT (FIX: Uncomment this line!)
 # ----------------------------
@@ -406,7 +425,7 @@ token_count = 0
 for output in llm(
     prompt,
     max_tokens=MAX_TOKENS,
-    temperature=0.1,
+    temperature=0.05,
     top_p=0.9,
     echo=False,
     stream=True,
