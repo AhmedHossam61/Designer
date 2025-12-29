@@ -5,15 +5,13 @@ from llama_cpp import Llama
 # ----------------------------
 # CONFIG
 # ----------------------------
-MODEL_PATH = "/teamspace/studios/this_studio/Designer/models/Qwen3-8B-Q4_K_M.gguf"
-INPUT_JSON_PATH = "/teamspace/studios/this_studio/Designer/The whole pipeline/noha.json"
+MODEL_PATH = "/teamspace/studios/this_studio/Designer/models/phi-4-Q4_K_M.gguf"
+INPUT_JSON_PATH = "noha.json"
 # INPUT_JSON_PATH = "8_slides.json"
 OUTPUT_JSON_PATH = "powerpoint_layout_26_12.json"
 MAX_TOKENS = 4096 * 2 * 2 * 2
-N_GPU_LAYERS = -1
-
 # GPU layers - adjust based on your VRAM (0 = CPU only, -1 = all layers on GPU)
-N_GPU_LAYERS = -1  # Use -1 for full GPU, 0 for CPU only, or specific number like 20
+N_GPU_LAYERS = -1  
 
 print("=" * 60)
 print("STARTING LLAMA.CPP INFERENCE")
@@ -46,13 +44,13 @@ print(f"✓ Loaded {len(input_data.get('slides', []))} slides")
 #----------------------
 # Load config file
 #----------------------
-
 with open("config.json", "r", encoding="utf-8") as f:
     config_data = json.load(f)
 
-img_gen_config = config_data.get("configuration", {}).get("generate_images", False)
-print("image generation choice is:", img_gen_config)
+img_gen_config = bool(config_data.get("configuration", {}).get("generate_images", False))
+img_gen_flag = "true" if img_gen_config else "false"
 
+print("image generation choice is:", img_gen_config)
 # ----------------------------
 # SYSTEM + USER MESSAGES
 
@@ -91,13 +89,13 @@ ANALYSIS & LAYOUT DECISION
   - content density
   - layout_type
   - presence or absence of image
-- If {{img_gen_config}} = false, you MUST assume **no images at all** for all slides.
+- If {img_gen_config} = false, you MUST assume *no images at all* for all slides.
 
 ====================================
 IMAGE EVALUATION (CRITICAL)
 ====================================
-- This section only applies IF {{img_gen_config}} = true.
-- If {{img_gen_config}} = false, images are disabled and none should appear.
+- This section only applies IF {img_gen_config} = true.
+- If {img_gen_config} = false, images are disabled and none should appear.
 
 - Default assumption: NO image.
 - Include an image ONLY if it clearly improves understanding or visual balance.
@@ -124,7 +122,7 @@ ELEMENT & INDEXING RULES (CRITICAL)
 - Each slide MUST have exactly:
   - 2 shapes (title + content)
   - 0 or 1 image
-  - If {{img_gen_config}} = false:
+- If {img_gen_config} = false:
   - Each slide MUST have exactly 2 shapes (title + content) and 0 images.
   - Image elements are forbidden and MUST NOT appear in elements.
 
@@ -146,7 +144,7 @@ HARD CONSTRAINTS:
 
   - The content shape MUST NOT span the full slide width
   - Maintain a minimum horizontal gap of 0.3 inches between the text area and the image area
-  
+
   - WIDTH BUDGET RULE (MANDATORY WHEN IMAGE EXISTS):
     - slide_width = 13.33
     - Let g = horizontal gap between text and image, and g MUST be >= 0.3
@@ -161,9 +159,6 @@ HARD CONSTRAINTS:
     - image.size.height MUST be >= 0.35 * slide_height (slide_height = 7.5)
     - If you cannot satisfy these minimums without overlap, OMIT the image
 
-- Side-by-side layout:
-  - One zone = text, one zone = image
-  - Maintain a minimum horizontal gap of 0.3 inches
 - Vertical stacking:
   - Title must be above content
   - Maintain a minimum vertical gap of 0.2 inches
@@ -219,6 +214,8 @@ STRICT RULES:
 LAYOUT AWARENESS:
 - Image composition must match placement
 - NEVER assume full-slide usage
+- If slide contain image the image size in the slide must be 1/3 of the slide
+  and you may shrinks the width of the contetn holders
 
 ====================================
 CANVAS
@@ -272,7 +269,11 @@ Before outputting JSON, you MUST internally verify:
 If any rule fails → recompute layout before output.
 """
 
+
+# -------------------------
 # USER MESSAGE
+# -------------------------
+
 user_message = """
 Input Data (structure only, content is external):
 {input_data}
@@ -283,11 +284,9 @@ Generate ONLY the layout JSON for all slides.
 OUTPUT FORMAT (STRICT):
 {
   "presentation": {
-    "dimensions": { "width": 13.33, "height": 7.5, "unit": "inches" },
     "slides": [
       {
         "slide_number": 1,
-        "source_slide_index": 0,
         "layout_type": "title | bullet | paragraph | comparison",
         "elements": [
           {
@@ -295,22 +294,21 @@ OUTPUT FORMAT (STRICT):
             "type": "shape",
             "role": "title",
             "shape_type": "rectangle | rounded_rectangle | other",
-            "text": "{{TITLE}}",
-            "position": { "x": 0, "y": 0, "unit": "inches" },
-            "size": { "width": 0, "height": 0, "unit": "inches" },
-            "fill": { "color": "#RRGGBB", "opacity": 0.0 },
-            "line": { "color": "#RRGGBB", "width": 0, "opacity": 0.0 },
+            "position": { "x": , "y": , "unit": "inches" },
+            "size": { "width": , "height": , "unit": "inches" },
+            "fill": { "color": "", "opacity":  },
+            "line": { "color": "", "width": , "opacity":  },
             "text_style": {
               "font_family": "string",
-              "font_size": 0,
+              "font_size": ,
               "bold": true,
               "italic": false,
               "underline": false,
-              "color": "#RRGGBB",
+              "color": "",
               "align": "left | center | right",
               "valign": "top | middle | bottom",
-              "line_spacing": 0.0,
-              "margin": { "top": 0.0, "right": 0.0, "bottom": 0.0, "left": 0.0, "unit": "inches" }
+              "line_spacing": ,
+              "margin": { "top": , "right": , "bottom": , "left": , "unit": "inches" }
             }
           },
           {
@@ -318,32 +316,30 @@ OUTPUT FORMAT (STRICT):
             "type": "shape",
             "role": "content",
             "shape_type": "rectangle | rounded_rectangle | other",
-            "text": "{{CONTENT}}",
-            "position": { "x": 0, "y": 0, "unit": "inches" },
-            "size": { "width": 0, "height": 0, "unit": "inches" },
-            "fill": { "color": "#RRGGBB", "opacity": 0.0 },
-            "line": { "color": "#RRGGBB", "width": 0, "opacity": 0.0 },
+            "position": { "x": , "y": , "unit": "inches" },
+            "size": { "width": , "height": , "unit": "inches" },
+            "fill": { "color": "", "opacity":  },
+            "line": { "color": "", "width": , "opacity":  },
             "text_style": {
               "font_family": "string",
-              "font_size": 0,
+              "font_size": ,
               "bold": false,
               "italic": false,
               "underline": false,
-              "color": "#RRGGBB",
+              "color": "",
               "align": "left | center | right",
               "valign": "top | middle | bottom",
-              "line_spacing": 0.0,
-              "margin": { "top": 0.0, "right": 0.0, "bottom": 0.0, "left": 0.0, "unit": "inches" }
+              "line_spacing": ,
+              "margin": { "top": , "right": , "bottom": , "left": , "unit": "inches" }
             }
-          }
-          ,
+          },
           {
             "id": "image_1",
             "type": "image",
             "source": "generate",
             "image_prompt": "diffusion-ready prompt ...",
-            "position": { "x": 0, "y": 0, "unit": "inches" },
-            "size": { "width": 0, "height": 0, "unit": "inches" }
+            "position": { "x": , "y": , "unit": "inches" },
+            "size": { "width": , "height": , "unit": "inches" }
           }
         ]
       }

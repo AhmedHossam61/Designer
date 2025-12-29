@@ -7,8 +7,8 @@ from graph_layout import app
 # ----------------------------
 # CONFIG (keep aligned with your existing script)
 # ----------------------------
-MODEL_PATH = "/teamspace/studios/this_studio/Designer/models/Qwen3-8B-Q4_K_M.gguf"
-INPUT_JSON_PATH = "/teamspace/studios/this_studio/Designer/The whole pipeline/noha.json"
+MODEL_PATH = "/teamspace/studios/this_studio/Designer/models/phi-4-Q4_K_M.gguf"
+INPUT_JSON_PATH = "noha.json"
 # INPUT_JSON_PATH = "8_slides.json"
 OUTPUT_JSON_PATH = "powerpoint_layout_26_12.json"
 MAX_TOKENS = 4096 * 2 * 2 * 2

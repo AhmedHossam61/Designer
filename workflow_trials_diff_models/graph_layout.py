@@ -96,7 +96,7 @@ def node_generate_layout(state: LayoutState) -> LayoutState:
     try:
         llm = Llama(
             model_path=state["model_path"],
-            n_ctx=  22000 ,
+            n_ctx=  30000 ,
             n_gpu_layers=state["n_gpu_layers"],
             n_threads=8,
             verbose=False,
@@ -134,14 +134,11 @@ def node_generate_layout(state: LayoutState) -> LayoutState:
 
 
 def node_parse_json(state: LayoutState) -> LayoutState:
-    if state["errors"] or not state.get("raw_model_output", "").strip():
-        return state
     try:
         state["layout_json"] = extract_json(state["raw_model_output"])
     except Exception as e:
         state["errors"].append(f"parse_json: {e}")
     return state
-
 
 
 def node_materialize_images(state: LayoutState) -> LayoutState:
