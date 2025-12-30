@@ -7,10 +7,10 @@ from graph_layout import app
 # ----------------------------
 # CONFIG (keep aligned with your existing script)
 # ----------------------------
-MODEL_PATH = "/teamspace/studios/this_studio/Designer/models/Qwen3-8B-Q4_K_M.gguf"
+MODEL_PATH = "/teamspace/studios/this_studio/Designer/models/Qwen3-8B-128K-Q8_0.gguf"
 INPUT_JSON_PATH = "/teamspace/studios/this_studio/Designer/The whole pipeline/noha.json"
 # INPUT_JSON_PATH = "8_slides.json"
-OUTPUT_JSON_PATH = "powerpoint_layout_29_12.json"
+OUTPUT_JSON_PATH = "powerpoint_layout_29_12_w.json"
 MAX_TOKENS = 4096 * 2 * 2 * 2
 N_GPU_LAYERS = -1
 
